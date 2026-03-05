@@ -204,17 +204,18 @@ _AXIS_LABELS = ["x", "y", "z"]
 def _draw_frame(ax, T: np.ndarray, label: str, scale: float,
                 colour: str, label_offset: np.ndarray) -> None:
     """Draw a coordinate frame as three RGB axis arrows at transform T."""
-    origin = T[:3, 3]
+    origin_d = T[:3, 3]
     R = T[:3, :3]
 
     for i, (col, lbl) in enumerate(zip(_AXIS_COLORS, _AXIS_LABELS)):
-        tip = origin + R[:, i] * scale
-        ax.quiver(*origin, *(tip - origin),
+        # Axis direction in NED, then mapped to display
+        axis_display = R[:, i]
+        ax.quiver(*origin_d, *axis_display * scale,
                   color=col, linewidth=1.5, arrow_length_ratio=0.2,
                   normalize=False)
 
     # Frame label
-    label_pos = origin + label_offset
+    label_pos = origin_d + label_offset
     ax.text(*label_pos, label, fontsize=8, color=colour,
             fontweight="bold", ha="center", va="center")
 
@@ -243,7 +244,7 @@ def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
     colour_map = {f: _FRAME_COLOURS[i % len(_FRAME_COLOURS)]
                   for i, f in enumerate(all_frames)}
 
-    # Collect all origins for axis scaling
+    # Collect all origins in display coords for axis scaling
     origins = []
     T_world: dict[str, np.ndarray] = {tree.root: np.eye(4)}
     for frame in tree.frames():
@@ -254,12 +255,11 @@ def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
     centre    = origins.mean(axis=0)
     max_range = max(np.linalg.norm(origins - centre, axis=1).max(), axis_scale * 3)
 
-    # Offset label slightly above each frame origin (in world z)
-    label_offset = np.array([0, 0, -axis_scale * 1.8])
+    # Label offset in display coords (above frame label in display z = world up)
+    label_offset = np.array([0, 0, axis_scale * 1.8])
 
     # Draw root frame
-    T_root = np.eye(4)
-    _draw_frame(ax, T_root, tree.root, axis_scale,
+    _draw_frame(ax, np.eye(4), tree.root, axis_scale,
                 colour_map[tree.root], label_offset)
 
     # Draw sensor frames + parent arrows
@@ -294,10 +294,13 @@ def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
     ]
     ax.legend(handles=legend_elements, loc="upper left", fontsize=8)
 
-    ax.set_title("Seeker static TF tree  (drag to rotate)",
-                 fontsize=10, pad=12)
+    ax.set_title(
+        "static TF tree  (drag to rotate)\n"
+        "Display: NED x-fwd, y-stbd, z-down",
+        fontsize=9, pad=12)
 
-    # Invert z so NED looks natural (z-down = depth increases downward)
+    ax.invert_xaxis()
+    ax.invert_yaxis()
     ax.invert_zaxis()
 
     plt.tight_layout()
