@@ -1,0 +1,49 @@
+# Seeker-class AUV — Base Sensor Extrinsics
+#
+# Convention : T_body_sensor maps p_sensor -> p_body
+# Body frame : NED, origin at vehicle geometric centre
+#              x-forward, y-starboard, z-down
+# Quaternion : Hamilton [w, x, y, z], unit norm
+# Translation: metres
+#
+# Confidence:
+#   [MEASURED]  from physical measurement or CAD
+#   [ESTIMATED] from vehicle geometry / paper dims — replace before SLAM use
+#   [UNKNOWN]   not yet characterised — placeholder identity
+
+metadata:
+  vehicle: "seeker-class"
+  reference_frame: "body"
+  last_calibrated: "UNCALIBRATED"
+
+sensors:
+
+  # Nortek Nucleus 1000 (DVL + INS + AHRS + depth + altimeter)
+  # Mounted in Camera & Compute Housing, transducer faces down.
+  # Translation estimated from vehicle geometry. Rotation assumes
+  # Nucleus body frame = vehicle body frame — verify against Nortek SDK.
+  dvl:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [0.0, 0.0, 0.0]   # [ESTIMATED]
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [UNKNOWN]
+
+  # IMU (part of Nucleus 1000)
+  imu:
+    parent_frame: "dvl"
+    T_body_sensor:
+      translation: [0.0, 0.0, 0.0]   # [MEASURED from CAD]
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [MEASURED from CAD]
+
+  # Stereo cameras — 2x Alvium C811, downward-facing
+  cam_fwd:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [-0.20645, 0.0, -0.102]  # [MEASURED from CAD]
+      quaternion:  [0.0, 0.0, 0.0, 1.0]    # [MEASURED from CAD]
+
+  cam_aft:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [-0.29935, 0.0, -0.102] # [MEASURED from CAD]
+      quaternion:  [0.0, 0.0, 0.0, 1.0]    # [MEASURED from CAD]

@@ -222,15 +222,15 @@ def _draw_frame(ax, T: np.ndarray, label: str, scale: float,
 
 def _draw_parent_arrow(ax, T_parent: np.ndarray, T_child: np.ndarray,
                        colour: str) -> None:
-    """Draw a dashed arrow from parent origin to child origin."""
+    """Draw a solid arrow from parent origin to child origin."""
     p_start = T_parent[:3, 3]
     p_end   = T_child[:3, 3]
     delta   = p_end - p_start
     if np.linalg.norm(delta) < 1e-9:
         return
     ax.quiver(*p_start, *delta,
-              color=colour, linewidth=0.8, linestyle="dashed",
-              arrow_length_ratio=0.1, alpha=0.6, normalize=False)
+              color=colour, linewidth=0.8, linestyle="solid",
+              arrow_length_ratio=0.05, alpha=0.6, normalize=False)
 
 
 def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
@@ -256,11 +256,11 @@ def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
     max_range = max(np.linalg.norm(origins - centre, axis=1).max(), axis_scale * 3)
 
     # Label offset in display coords (above frame label in display z = world up)
-    label_offset = np.array([0, 0, axis_scale * 1.8])
+    label_offset = np.array([0, 0, -1 * axis_scale * 1.8])
 
     # Draw root frame
     _draw_frame(ax, np.eye(4), tree.root, axis_scale,
-                colour_map[tree.root], label_offset)
+                colour_map[tree.root], -1 * label_offset)
 
     # Draw sensor frames + parent arrows
     for frame in tree.frames():
@@ -299,9 +299,11 @@ def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
         "Display: NED x-fwd, y-stbd, z-down",
         fontsize=9, pad=12)
 
-    ax.invert_xaxis()
+    # Invert the y and z axes to match the NED convention
     ax.invert_yaxis()
     ax.invert_zaxis()
+
+    ax.set_box_aspect([1,1,1]) # Equal scaling for all axes
 
     plt.tight_layout()
     plt.show()
