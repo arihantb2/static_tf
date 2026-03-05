@@ -1,0 +1,66 @@
+# Seeker-class AUV — Base Sensor Extrinsics
+#
+# Convention : T_body_sensor maps p_sensor -> p_body
+# Body frame : NED, origin at vehicle geometric centre
+#              x-forward, y-starboard, z-down
+# Quaternion : Hamilton [w, x, y, z], unit norm
+# Translation: metres
+#
+# Confidence:
+#   [MEASURED]  from physical measurement or CAD
+#   [ESTIMATED] from vehicle geometry / paper dims — replace before SLAM use
+#   [UNKNOWN]   not yet characterised — placeholder identity
+
+metadata:
+  vehicle: "seeker-class"
+  reference_frame: "body"
+  last_calibrated: "UNCALIBRATED"
+
+sensors:
+
+  # Nortek Nucleus 1000 (DVL + INS + AHRS + depth + altimeter)
+  # Mounted in Camera & Compute Housing, transducer faces down.
+  # Translation estimated from vehicle geometry. Rotation assumes
+  # Nucleus body frame = vehicle body frame — verify against Nortek SDK.
+  nucleus1000:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [0.000, 0.000, 0.060]   # [ESTIMATED]
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [UNKNOWN]
+
+  # xSense AHRS
+  # Mounting location and orientation not confirmed.
+  xsens_ahrs:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [0.000, 0.000, 0.000]   # [UNKNOWN]
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [UNKNOWN]
+
+  # Stereo cameras — 2x Alvium C811, downward-facing
+  # 75 mm longitudinal baseline (Toohey et al. 2024).
+  # Rotation assumes nadir-pointing, body-aligned — verify after Kalibr.
+  cam_fwd:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [0.0375, 0.000, 0.055]  # [MEASURED x: half-baseline] [ESTIMATED yz]
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [ESTIMATED]
+
+  cam_aft:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [-0.0375, 0.000, 0.055] # [MEASURED x: half-baseline] [ESTIMATED yz]
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [ESTIMATED]
+
+  # AdNav Subsonus USBL — mast-mounted above vehicle
+  subsonus_usbl:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [0.000, 0.000, -0.300]  # [ESTIMATED] mast height ~300mm above hull
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [UNKNOWN]
+
+  # u-blox ZED-F9P GPS — mast-mounted, surface only
+  gps:
+    parent_frame: "body"
+    T_body_sensor:
+      translation: [0.000, 0.000, -0.320]  # [ESTIMATED] slightly above Subsonus
+      quaternion:  [1.0, 0.0, 0.0, 0.0]    # [FIXED] antenna rotationally symmetric

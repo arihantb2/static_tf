@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>static_tf</name>
+  <version>1.0.0</version>
+  <description>
+    Lightweight static transform tree for sensor frame management.
+    Loads extrinsic transforms from YAML config and provides T_target_source
+    lookups for any pair of registered frames. No runtime overhead after init.
+    Intended for use in SLAM systems where all sensor-to-body transforms are static.
+  </description>
+
+  <maintainer email="arihant.lunawat@sydney.edu.au">Arihant Lunawat</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <!-- C++ deps -->
+  <depend>eigen3_cmake_module</depend>
+  <build_depend>libeigen3-dev</build_depend>
+  <depend>yaml-cpp</depend>
+
+  <!-- Python deps (for ament_python_install_package) -->
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+
+  <!-- Test deps -->
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
