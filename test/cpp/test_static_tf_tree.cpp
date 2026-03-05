@@ -87,7 +87,7 @@ TEST_F(StaticTfTreeTest, LookupSensorToBody_IsInverse)
     assert_transform_approx(product, Transform::Identity());
 }
 
-TEST_F(StaticTfTreeTest, StereoBáseline_ChainThroughRoot)
+TEST_F(StaticTfTreeTest, StereoBaseline_ChainThroughRoot)
 {
     // T_left_right = inv(T_body_left) * T_body_right
     auto T_body_left = tree_.lookup("body", "cam_left");
@@ -98,7 +98,7 @@ TEST_F(StaticTfTreeTest, StereoBáseline_ChainThroughRoot)
     assert_transform_approx(T_left_right, T_left_right_expected);
 }
 
-TEST_F(StaticTfTreeTest, StereoBáseline_Magnitude)
+TEST_F(StaticTfTreeTest, StereoBaseline_Magnitude)
 {
     // Baseline between cam_left and cam_right must be 75 mm
     auto T = tree_.lookup("cam_left", "cam_right");
