@@ -1,2 +1,6 @@
 *.pyc
 __pycache__
+.gitnexus
+.claude
+AGENTS.md
+CLAUDE.md
