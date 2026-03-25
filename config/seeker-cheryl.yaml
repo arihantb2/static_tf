@@ -39,11 +39,11 @@ sensors:
   cam_fwd:
     parent_frame: "body"
     T_body_sensor:
-      translation: [-0.20645, 0.0, -0.102]  # [MEASURED from CAD]
+      translation: [-0.197725, 0.0, -0.102]  # [MEASURED from CAD]
       quaternion:  [0.0, 0.0, 0.0, 1.0]    # [MEASURED from CAD]
 
   cam_aft:
     parent_frame: "body"
     T_body_sensor:
-      translation: [-0.29935, 0.0, -0.102] # [MEASURED from CAD]
+      translation: [-0.273175, 0.0, -0.102] # [MEASURED from CAD]
       quaternion:  [0.0, 0.0, 0.0, 1.0]    # [MEASURED from CAD]
