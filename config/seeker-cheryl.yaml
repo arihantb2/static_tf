@@ -12,6 +12,7 @@
 #   [UNKNOWN]   not yet characterised — placeholder identity
 
 metadata:
+  name: "Seeker Cheryl"
   vehicle: "seeker-class"
   reference_frame: "body"
   last_calibrated: "UNCALIBRATED"

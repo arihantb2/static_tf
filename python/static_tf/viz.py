@@ -15,6 +15,12 @@ Usage:
 
     # Adjust axis scale (metres)
     python3 static_tf_viz.py config/seeker_base.yaml --viz --axis-scale 0.05
+
+    # Save 2-D projection PDFs (XY top-down and XZ profile) to a directory
+    python3 static_tf_viz.py config/seeker_base.yaml --output-dir figures/
+
+    # Save projections and show 3D view
+    python3 static_tf_viz.py config/seeker_base.yaml --viz --output-dir figures/
 """
 
 from __future__ import annotations
@@ -310,6 +316,163 @@ def visualize(tree: StaticTfTree, axis_scale: float = 0.05) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 2-D projection plots (paper-quality, saved to file)
+# ---------------------------------------------------------------------------
+
+def save_projections(tree: StaticTfTree, cfg: dict, output_dir: str | Path,
+                     axis_scale: float = 0.04) -> None:
+    """Save XY (top-down) and XZ (profile) projections side-by-side as a PNG.
+
+    x (forward) is placed on the shared vertical axis so longitudinal positions
+    align directly between the two views.
+    Layout:  left = y(starboard) × x(forward),  right = z(down) × x(forward).
+    """
+    if "matplotlib" not in sys.modules:
+        import matplotlib
+        matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    all_frames = [tree.root] + tree.frames()
+    colour_map = {f: _FRAME_COLOURS[i % len(_FRAME_COLOURS)]
+                  for i, f in enumerate(all_frames)}
+
+    T_world: dict[str, np.ndarray] = {tree.root: np.eye(4)}
+    for frame in tree.frames():
+        T_world[frame] = tree.lookup(tree.root, frame)
+
+    # Leader-line length: 25 % of scene radius, but at least 3× axis_scale
+    all_origins = np.array([T_world[f][:3, 3] for f in all_frames])
+    scene_radius = max(
+        np.linalg.norm(all_origins - all_origins.mean(axis=0), axis=1).max(),
+        axis_scale,
+    )
+    leader_len = max(scene_radius * 0.30, axis_scale * 3.0)
+
+    # Evenly-spaced label angles so no two leaders ever point the same way
+    label_angles = np.linspace(np.pi / 6, np.pi / 6 + 2 * np.pi,
+                               len(all_frames), endpoint=False)
+
+    _RC = {
+        "font.family": "serif",
+        "font.size": 9,
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "legend.fontsize": 8,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "axes.grid": True,
+        "grid.alpha": 0.35,
+        "grid.linestyle": "--",
+        "grid.linewidth": 0.5,
+        "figure.dpi": 300,
+    }
+
+    def _draw_projection(ax, h_idx: int, v_idx: int) -> None:
+        """Draw one projection onto *ax*.
+
+        h_idx — world-axis index mapped to matplotlib's horizontal axis.
+        v_idx — world-axis index mapped to matplotlib's vertical axis (= x=0).
+        The two displayed world-frame axes (h_idx and v_idx) are drawn as
+        coloured arrows at each frame origin.
+        """
+        # ---- per-frame: axis arrows, marker, leader + label ----
+        for i, frame in enumerate(all_frames):
+            T  = T_world[frame]
+            R  = T[:3, :3]
+            oh = T[:3, 3][h_idx]
+            ov = T[:3, 3][v_idx]
+            colour = colour_map[frame]
+
+            # Project the two relevant world axes onto this plane
+            for world_ax in (h_idx, v_idx):
+                d = R[:, world_ax] * axis_scale
+                ax.annotate(
+                    "",
+                    xy=(oh + d[h_idx], ov + d[v_idx]),
+                    xytext=(oh, ov),
+                    arrowprops=dict(
+                        arrowstyle="-|>",
+                        color=_AXIS_COLORS[world_ax],
+                        lw=1.5,
+                        mutation_scale=10,
+                    ),
+                    zorder=3,
+                )
+
+            # Frame origin dot
+            ax.scatter(oh, ov, color=colour, s=30, zorder=5, linewidths=0)
+
+            # Leader line to label at a unique evenly-distributed angle
+            ang  = label_angles[i]
+            lh   = oh + np.cos(ang) * leader_len
+            lv   = ov + np.sin(ang) * leader_len
+            ax.plot([oh, lh], [ov, lv], color=colour, lw=0.6,
+                    alpha=0.7, zorder=4)
+            ax.text(
+                lh, lv, frame,
+                fontsize=7.5,
+                color=colour,
+                fontweight="bold",
+                ha="center", va="center",
+                zorder=6,
+                bbox=dict(
+                    boxstyle="round,pad=0.2",
+                    facecolor="white",
+                    edgecolor=colour,
+                    linewidth=0.6,
+                    alpha=0.92,
+                ),
+            )
+
+    with plt.rc_context(_RC):
+        # sharey=True → shared vertical axis = x (forward)
+        fig, (ax_left, ax_right) = plt.subplots(
+            1, 2,
+            figsize=(10.0, 5.5),
+            sharey=True,
+        )
+
+        # ---- Left: top-down  horizontal=y(starboard)  vertical=x(forward) ----
+        _draw_projection(ax_left, h_idx=1, v_idx=0)
+        ax_left.set_xlabel("y  (starboard, m)")
+        ax_left.set_ylabel("x  (forward, m)")
+        ax_left.set_title("Top-down  (XY)", pad=8)
+        ax_left.set_aspect("equal", adjustable="datalim")
+
+        # ---- Right: profile  horizontal=z(down)  vertical=x(forward, shared) ----
+        _draw_projection(ax_right, h_idx=2, v_idx=0)
+        ax_right.set_xlabel("z  (down, m)")
+        ax_right.set_title("Profile  (XZ)", pad=8)
+        ax_right.set_aspect("equal", adjustable="datalim")
+
+        # Legend: placed inside the right subplot to reclaim whitespace
+        legend_elems = [
+            Line2D([0], [0], color=_AXIS_COLORS[0], lw=1.5, label="x-axis"),
+            Line2D([0], [0], color=_AXIS_COLORS[1], lw=1.5, label="y-axis"),
+            Line2D([0], [0], color=_AXIS_COLORS[2], lw=1.5, label="z-axis"),
+        ]
+        ax_right.legend(
+            handles=legend_elems,
+            loc="best",
+            framealpha=0.9,
+            edgecolor="#cccccc",
+        )
+
+        platform = cfg.get("metadata", {}).get("name", "Sensor TF Tree")
+        fig.suptitle(f"{platform} - Sensor TF Tree", fontsize=11, fontweight="bold", y=1.01)
+        fig.tight_layout()
+
+        out_path = output_dir / "tf_tree_projections.png"
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        print(f"  Saved {out_path.resolve()}")
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -325,6 +488,9 @@ def main() -> None:
         help="Show interactive 3D visualisation")
     parser.add_argument("--axis-scale", "-s", type=float, default=0.04,
         help="Length of drawn axis arrows in metres (default: 0.04)")
+    parser.add_argument("--output-dir", "-o", default=None, metavar="DIR",
+        help="Save XY and XZ 2-D projection PNGs to DIR (implies save, "
+             "not --viz)")
     args = parser.parse_args()
 
     # Load
@@ -341,6 +507,10 @@ def main() -> None:
     # Visualize
     if args.viz:
         visualize(tree, axis_scale=args.axis_scale)
+
+    # Save 2-D projections
+    if args.output_dir:
+        save_projections(tree, cfg, args.output_dir, axis_scale=args.axis_scale)
 
 
 if __name__ == "__main__":
